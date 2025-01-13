@@ -15,6 +15,6 @@
   "packageManager": {
     "name": "vite",
     "version": "1.0.0",
-    "packageManager": "pnpm@latest"
+    "packageManager": "pnpm@latest-10"
   }
 }
