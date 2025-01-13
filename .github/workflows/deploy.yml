@@ -1,51 +1,52 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# namnet på jobbet - dyker upp i "actions"-fliken på GitHub 👇
+name: deploy changes
 
+# vid push till branchen main… 👇
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ['main']
+    branches:
+      - main
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow one concurrent deployment
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
-
+# starta följande jobb…
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # vilken typ av "dator" jobbet ska köras på, i detta fallet senaste versionen av ubuntu 👇
     runs-on: ubuntu-latest
+    # nåt github-jox som måste finnas med (strategy matrix) 👇
+    strategy:
+      matrix:
+        # vilken version av NodeJS som ska användas 👇
+        node-version: [16]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      # använd ett färdigt script som har till uppgift att "checka ut" koden, dvs. hämta den 👇
+      - uses: actions/checkout@v3
         with:
-          node-version: 20
-          cache: 'npm'
+          fetch-depth: 0
+      # använd pnpm för att installera dependencies, ett annat färdigt script 👇
+      - uses: pnpm/action-setup@v2.2.4
+        with:
+          version: 7
+
+      # installera node.js för att kunna installera dependencies 👇
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      # installera dependencies 👇
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --no-frozen-lockfile
+        # ❗ lägg till --no-frozen-lockfile om du får problem med att "lockfile" är för gammal (t.ex. om du använder npm)
+
+      # steget i jobbet heter "Build", vi kan hitta på vad som helst här 👇
       - name: Build
-        run: npm run build
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        # kör "build"-scriptet, dvs. gör om Sass och TS till JS 👇
+        run: pnpm run build
+
+      - name: Deploy
+        # använd ett färdigt script för att deploya till en branch som heter gh-pages (den skapas automatiskt av detta script)
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          # Upload dist folder
-          path: './dist'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
